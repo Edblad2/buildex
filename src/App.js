@@ -11,19 +11,15 @@ const App = () => {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const searchRef = useRef(null);
 
-  const categories = useMemo(() => ['Todas'], []);
-
   const filteredCompanies = useMemo(() => {
     let filtered = enhancedCompanies;
     if (searchQuery) {
       filtered = filtered.filter(company => 
         company.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    } else if (selectedCategory !== 'Todas') {
-      filtered = filtered.filter(company => company.category === selectedCategory);
     }
     return filtered.sort((a, b) => b.rating - a.rating);
-  }, [selectedCategory, searchQuery]);
+  }, [searchQuery]);
 
   const topCompanies = useMemo(() => {
     return [...enhancedCompanies]
