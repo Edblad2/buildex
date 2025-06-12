@@ -2,11 +2,11 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import LayoutHeader from './components/LayoutHeader';
 import CompanyCard from './components/CompanyCard';
 import CompanyDetailModal from './components/CompanyDetailModal';
-import { enhancedCompanies } from './mock/companies'; // Assuming companies.js exports enhancedCompanies now
+
+import { enhancedCompanies } from './mock/companies'; // Assuming companies.js exports enhancedCompanies
 
 const App = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRecommendations, setShowRecommendations] = useState(false);
   const searchRef = useRef(null);
@@ -105,9 +105,8 @@ const App = () => {
           {/* Single "Todas" Button */}
           <div className="mb-12 flex justify-center">
             <button
-              onClick={() => setSelectedCategory('Todas')}
-              className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md
-                ${selectedCategory === 'Todas' ? 'bg-blue-600 text-white transform scale-105' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+              onClick={() => setSearchQuery('')} // Reset search to show all companies
+              className="px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md bg-blue-600 text-white transform scale-105"
             >
               Todas
             </button>
