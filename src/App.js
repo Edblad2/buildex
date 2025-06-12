@@ -3,7 +3,7 @@ import LayoutHeader from './components/LayoutHeader';
 import CompanyCard from './components/CompanyCard';
 import CompanyDetailModal from './components/CompanyDetailModal';
 import CategoryFilter from './components/CategoryFilter';
-import { enhancedCompanies } from './mock/companies'; // Assuming companies.js exports enhancedCompanies
+import { enhancedCompanies } from './mock/companies';
 
 const App = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -12,17 +12,23 @@ const App = () => {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const searchRef = useRef(null);
 
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setShowRecommendations(!!searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const filteredCompanies = useMemo(() => {
     let filtered = enhancedCompanies;
     if (searchQuery) {
       filtered = filtered.filter(company => 
         company.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    } else if (selectedCategory !== 'Todas') {
-      filtered = filtered.filter(company => company.category === selectedCategory);
     }
     return filtered.sort((a, b) => b.rating - a.rating);
-  }, [selectedCategory, searchQuery]);
+  }, [searchQuery]);
 
   const topCompanies = useMemo(() => {
     return [...enhancedCompanies]
@@ -43,7 +49,7 @@ const App = () => {
         });
       }
     });
-    return projects.slice(0, 6); // Show more projects for a "boom" effect
+    return projects.slice(0, 6);
   }, []);
 
   const handleSelectCompany = (company) => {
@@ -84,12 +90,11 @@ const App = () => {
               type="text"
               placeholder="Busca empresas por nombre..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setShowRecommendations(true); }}
-              onFocus={() => setShowRecommendations(true)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full max-w-md p-4 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition duration-300 shadow-md bg-white text-gray-700"
             />
             {showRecommendations && searchQuery && (
-              <div className="absolute top-full mt-2 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+              <div className="absolute top-full mt-2 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
                 {enhancedCompanies
                   .filter(company => company.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(company => (
@@ -107,7 +112,7 @@ const App = () => {
 
           {/* Category Filter with Only "Todas" */}
           <CategoryFilter
-            categories={['Todas']} // Force only "Todas" category
+            categories={['Todas']}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
           />
