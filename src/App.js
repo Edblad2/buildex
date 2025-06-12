@@ -2,11 +2,12 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import LayoutHeader from './components/LayoutHeader';
 import CompanyCard from './components/CompanyCard';
 import CompanyDetailModal from './components/CompanyDetailModal';
-
+import CategoryFilter from './components/CategoryFilter';
 import { enhancedCompanies } from './mock/companies'; // Assuming companies.js exports enhancedCompanies
 
 const App = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
   const [showRecommendations, setShowRecommendations] = useState(false);
   const searchRef = useRef(null);
@@ -17,9 +18,11 @@ const App = () => {
       filtered = filtered.filter(company => 
         company.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
+    } else if (selectedCategory !== 'Todas') {
+      filtered = filtered.filter(company => company.category === selectedCategory);
     }
     return filtered.sort((a, b) => b.rating - a.rating);
-  }, [searchQuery]);
+  }, [selectedCategory, searchQuery]);
 
   const topCompanies = useMemo(() => {
     return [...enhancedCompanies]
@@ -86,7 +89,7 @@ const App = () => {
               className="w-full max-w-md p-4 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition duration-300 shadow-md bg-white text-gray-700"
             />
             {showRecommendations && searchQuery && (
-              <div className="absolute top-full mt-2 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+              <div className="absolute top-full mt-2 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {enhancedCompanies
                   .filter(company => company.name.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(company => (
@@ -102,15 +105,12 @@ const App = () => {
             )}
           </div>
 
-          {/* Single "Todas" Button */}
-          <div className="mb-12 flex justify-center">
-            <button
-              onClick={() => setSearchQuery('')} // Reset search to show all companies
-              className="px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md bg-blue-600 text-white transform scale-105"
-            >
-              Todas
-            </button>
-          </div>
+          {/* Category Filter with Only "Todas" */}
+          <CategoryFilter
+            categories={['Todas']} // Force only "Todas" category
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
 
           {/* Featured Projects Section with "Boom" Effect */}
           <section className="mb-16">
