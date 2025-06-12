@@ -1,67 +1,36 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import LayoutHeader from './components/LayoutHeader';
 import CompanyCard from './components/CompanyCard';
 import CompanyDetailModal from './components/CompanyDetailModal';
-import CategoryFilter from './components/CategoryFilter';
-import { companies } from './mock/companies';
-
-// Add a fictional Duolingo Constructora to the companies data
-const enhancedCompanies = [
-  ...companies,
-  {
-    id: '10',
-    name: 'Duolingo Constructora',
-    location: 'Medellín',
-    specialty: 'Proyectos Educativos',
-    category: 'Obra Gris',
-    rating: 4.9,
-    projects: 22,
-    description: 'Líder en construcción de espacios educativos y residenciales innovadores, combinando tecnología y sostenibilidad.',
-    profileImage: 'https://via.placeholder.com/150/00FF7F/FFFFFF?text=DC',
-    contact: {
-      email: 'contacto@duolingoconstructora.com',
-      phone: '3005556677',
-      whatsapp: '573005556677',
-      website: 'https://www.duolingoconstructora.com'
-    },
-    featuredProjects: [
-      { name: 'Campus Verde', image: 'https://via.placeholder.com/400x250/00FF7F/FFFFFF?text=Campus+Verde' },
-      { name: 'Edificio Duo', image: 'https://via.placeholder.com/400x250/00FF7F/FFFFFF?text=Edificio+Duo' }
-    ]
-  }
-];
+import { enhancedCompanies } from './mock/companies'; // Assuming companies.js exports enhancedCompanies now
 
 const App = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const searchRef = useRef(null);
 
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(enhancedCompanies.map(company => company.category))];
-    return ['Todas', ...uniqueCategories.sort()];
-  }, []);
+  const categories = useMemo(() => ['Todas'], []);
 
   const filteredCompanies = useMemo(() => {
     let filtered = enhancedCompanies;
-    if (selectedCategory !== 'Todas') {
-      filtered = filtered.filter(company => company.category === selectedCategory);
-    }
     if (searchQuery) {
       filtered = filtered.filter(company => 
         company.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
+    } else if (selectedCategory !== 'Todas') {
+      filtered = filtered.filter(company => company.category === selectedCategory);
     }
     return filtered.sort((a, b) => b.rating - a.rating);
   }, [selectedCategory, searchQuery]);
 
-  // Select top 3 companies by rating for the Top Companies section
   const topCompanies = useMemo(() => {
     return [...enhancedCompanies]
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 3);
+      .sort((a, b) => b.rating - a.rating || b.projects - a.projects)
+      .slice(0, 10);
   }, []);
 
-  // Select a few featured projects from companies
   const featuredProjects = useMemo(() => {
     const projects = [];
     enhancedCompanies.forEach(company => {
@@ -75,17 +44,27 @@ const App = () => {
         });
       }
     });
-    // Limit to 3 projects for display
-    return projects.slice(0, 3);
+    return projects.slice(0, 6); // Show more projects for a "boom" effect
   }, []);
 
   const handleSelectCompany = (company) => {
     setSelectedCompany(company);
+    setShowRecommendations(false);
   };
 
   const handleCloseModal = () => {
     setSelectedCompany(null);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowRecommendations(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 font-sans antialiased">
@@ -100,74 +79,105 @@ const App = () => {
             Explora por categorías y contacta directamente a los expertos.
           </p>
 
-          {/* Search Bar */}
-          <div className="mb-8 flex justify-center">
+          {/* Search Bar with Recommendations */}
+          <div className="mb-8 flex justify-center relative" ref={searchRef}>
             <input
               type="text"
               placeholder="Busca empresas por nombre..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full max-w-md p-4 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition duration-300 shadow-sm bg-white text-gray-700"
+              onChange={(e) => { setSearchQuery(e.target.value); setShowRecommendations(true); }}
+              onFocus={() => setShowRecommendations(true)}
+              className="w-full max-w-md p-4 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition duration-300 shadow-md bg-white text-gray-700"
             />
+            {showRecommendations && searchQuery && (
+              <div className="absolute top-full mt-2 w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                {enhancedCompanies
+                  .filter(company => company.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map(company => (
+                    <div
+                      key={company.id}
+                      onClick={() => handleSelectCompany(company)}
+                      className="p-3 hover:bg-gray-100 cursor-pointer text-lg text-gray-800"
+                    >
+                      {company.name}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
-          {/* Featured Projects Section */}
+          {/* Single "Todas" Button */}
+          <div className="mb-12 flex justify-center">
+            <button
+              onClick={() => setSelectedCategory('Todas')}
+              className={`px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 shadow-md
+                ${selectedCategory === 'Todas' ? 'bg-blue-600 text-white transform scale-105' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
+            >
+              Todas
+            </button>
+          </div>
+
+          {/* Featured Projects Section with "Boom" Effect */}
           <section className="mb-16">
-            <h3 className="text-3xl font-extrabold text-gray-900 mb-8 text-center">Proyectos Destacados</h3>
+            <h3 className="text-4xl font-extrabold text-yellow-600 mb-8 text-center animate-bounce">Proyectos Destacados 🚀</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredProjects.map((project, index) => (
                 <div
                   key={`${project.companyId}-${index}`}
-                  className="bg-white rounded-3xl shadow-xl p-7 flex flex-col items-center text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
+                  className="bg-gradient-to-br from-blue-400 to-purple-500 rounded-3xl shadow-2xl p-8 flex flex-col items-center text-center text-white transform hover:scale-105 transition-all duration-500 animate-pulse"
                 >
-                  <img src={project.image} alt={project.name} className="w-full h-48 object-cover rounded-xl mb-6" />
-                  <h4 className="text-xl font-bold text-gray-900 mb-2">{project.name}</h4>
-                  <p className="text-gray-600 font-medium">{project.companyName}</p>
+                  <div className="w-48 h-48 bg-white rounded-full overflow-hidden mb-6">
+                    <img src={project.image} alt={project.name} className="w-full h-full object-cover" />
+                  </div>
+                  <h4 className="text-2xl font-bold mb-2">{project.name}</h4>
+                  <p className="text-lg font-medium">{project.companyName}</p>
+                  <div className="mt-4 bg-white text-gray-800 px-4 py-2 rounded-full animate-spin-slow">
+                    ¡Explora!
+                  </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Top Companies Section */}
+          {/* Top Companies Ranking */}
           <section className="mb-16">
-            <h3 className="text-3xl font-extrabold text-gray-900 mb-8 text-center">Mejores Empresas</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {topCompanies.map(company => (
+            <h3 className="text-4xl font-extrabold text-green-600 mb-8 text-center animate-pulse">Ranking de Mejores Empresas 🏆</h3>
+            <div className="grid grid-cols-1 gap-6">
+              {topCompanies.map((company, index) => (
                 <div
                   key={company.id}
-                  className="bg-white rounded-3xl shadow-xl p-7 flex flex-col items-center text-center cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
-                  onClick={() => handleSelectCompany(company)}
+                  className="bg-white rounded-2xl shadow-lg p-6 flex items-center justify-between animate-slide-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <img
-                    src={company.profileImage}
-                    alt={company.name}
-                    className="w-32 h-32 rounded-full object-cover mb-6 border-5 border-blue-200 shadow-lg transform hover:scale-110 transition-transform duration-300"
-                  />
-                  <h4 className="text-xl font-bold text-gray-900 mb-2">{company.name}</h4>
-                  <p className="text-gray-600 text-md mb-3 font-medium">{company.specialty}</p>
-                  <div className="flex items-center text-yellow-500 mb-4">
-                    <svg className="w-6 h-6 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.538 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.783 .57-1.838-.197-1.538-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.929 8.72c-.783-.57-.381-1.81 .588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-gray-800 font-extrabold text-xl">{company.rating}</span>
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 flex items-center justify-center rounded-full font-bold text-xl ${getRankColor(index + 1)}`}>
+                      {index + 1}
+                    </div>
+                    <img
+                      src={company.profileImage}
+                      alt={company.name}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                    <div>
+                      <p className="font-semibold text-gray-800 text-lg">{company.name}</p>
+                      <p className="text-sm text-gray-600">{company.specialty}</p>
+                    </div>
                   </div>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-6 flex-grow">{company.description.substring(0, 100)}...</p>
+                  <div className="text-right">
+                    <p className="text-yellow-500 font-bold text-xl">{company.rating} ★</p>
+                    <p className="text-gray-500 text-sm">{company.projects} proyectos</p>
+                    <p className="text-green-600 font-bold">{Math.round(company.rating * 1000 + company.projects * 100)} XP</p>
+                  </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleSelectCompany(company); }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-lg font-semibold shadow-lg transform hover:scale-105 mt-auto"
+                    onClick={() => handleSelectCompany(company)}
+                    className="ml-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
                   >
-                    Ver Detalles
+                    Ver Perfil
                   </button>
                 </div>
               ))}
             </div>
           </section>
-
-          <CategoryFilter
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
             {filteredCompanies.map((company) => (
@@ -187,6 +197,16 @@ const App = () => {
       />
     </div>
   );
+};
+
+// Helper function for rank colors
+const getRankColor = (rank) => {
+  switch (rank) {
+    case 1: return 'bg-yellow-400 text-yellow-900';
+    case 2: return 'bg-gray-300 text-gray-800';
+    case 3: return 'bg-amber-700 text-white';
+    default: return 'bg-gray-100 text-gray-700';
+  }
 };
 
 export default App;
